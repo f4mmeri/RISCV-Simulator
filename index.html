@@ -2,29 +2,57 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>RISC-V RV32I Simulator — CS3051</title>
+<title>RISC-V RV32I Simulator — CS3051 (CPUlator Style)</title>
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
 <div id="titlebar">
-  <div class="tb-tab active"><span class="dot"></span>riscv-simulator.html</div>
+  <div class="tb-tab active"><span class="dot"></span>riscv-simulator.html (RV32I)</div>
   <div class="tb-tab">README.md</div>
 </div>
 
 <div id="toolbar">
-  <button class="btn" id="btn-step">▷ Step <span style="color:var(--text3);font-size:10px">F7</span></button>
-  <button class="btn" id="btn-step10">▷▷ ×10</button>
-  <button class="btn" id="btn-step100">▷▷▷ ×100</button>
-  <button class="btn run" id="btn-run">Run <span style="font-size:10px;opacity:.8">F8</span></button>
-  <button class="btn" id="btn-reset">↺ Reset <span style="color:var(--text3);font-size:10px">F9</span></button>
+  <div id="status-badge" class="state-stopped">Stopped</div>
+
+  <button class="btn" id="btn-step">
+    <span class="btn-top">Step</span>
+    <span class="btn-sub">F7</span>
+  </button>
+  <button class="btn" id="btn-step10">
+    <span class="btn-top">Step ×10</span>
+    <span class="btn-sub">10 inst</span>
+  </button>
+  <button class="btn" id="btn-step100">
+    <span class="btn-top">Step ×100</span>
+    <span class="btn-sub">100 inst</span>
+  </button>
+  <button class="btn run" id="btn-run">
+    <span class="btn-top">Continue</span>
+    <span class="btn-sub">F8</span>
+  </button>
+  <button class="btn" id="btn-reset">
+    <span class="btn-top">Restart</span>
+    <span class="btn-sub">F9</span>
+  </button>
+
   <div class="sep"></div>
-  <label class="btn" for="file-input">Cargar .bin</label>
+
+  <label class="btn" for="file-input">
+    <span class="btn-top">Load file...</span>
+    <span class="btn-sub">Raw .bin</span>
+  </label>
   <input type="file" id="file-input" accept=".bin">
-  <button class="btn" id="btn-demo">riscvtest</button>
-  <button class="btn" id="btn-demo-qs">quicksort</button>
-  <button class="btn" id="btn-demo-tree">árbol simétrico</button>
-  <button class="btn" id="btn-demo-ecall">ecall / salida</button>
+
+  <div class="sep"></div>
+
+  <div class="btn-group-demos">
+    <button class="btn btn-demo" id="btn-demo" title="Prueba de instrucciones básicas">riscvtest</button>
+    <button class="btn btn-demo" id="btn-demo-qs" title="Quicksort in-place en 0x1000">quicksort</button>
+    <button class="btn btn-demo" id="btn-demo-tree" title="Árbol simétrico en 0x1000">árbol simétrico</button>
+    <button class="btn btn-demo" id="btn-demo-ecall" title="Llamada al sistema ecall">ecall / salida</button>
+  </div>
+
   <div id="statusbar-top">
     <span>Estado: <span id="status-txt">Sin programa</span></span>
   </div>
@@ -34,7 +62,10 @@
 
   <!-- REGISTROS -->
   <div id="panel-regs">
-    <div class="panel-hdr">Registros</div>
+    <div class="panel-hdr">
+      <span class="hdr-icon">⚙</span>
+      <span>Registers</span>
+    </div>
     <div id="regs-list"></div>
   </div>
 
@@ -42,31 +73,39 @@
   <div id="panel-center">
     <div id="disasm-panel">
       <div class="panel-hdr-dis">
-        <span>Desensamblado</span>
-        <span id="dis-pc-lbl" style="color:var(--accent);font-size:10px"></span>
+        <span><span class="hdr-icon">‹/›</span> Disassembly (RV32I)</span>
+        <span id="dis-pc-lbl"></span>
       </div>
       <div id="disasm-list"></div>
     </div>
     <div id="mem-panel">
+      <div class="panel-hdr">
+        <span class="hdr-icon">🔍</span>
+        <span>Memory (Ctrl-M)</span>
+      </div>
       <div id="mem-toolbar">
-        <label>Memoria</label>
+        <label for="mem-addr">Go to address, label, or register:</label>
         <input type="text" id="mem-addr" value="0x00000000">
-        <button class="btn" id="btn-mem-go">Ir</button>
-        <button class="btn" id="btn-mem-pc">→ PC</button>
-        <button class="btn" id="btn-mem-64">0x64</button>
-        <button class="btn" id="btn-mem-1000">0x1000</button>
+        <button class="btn btn-small" id="btn-mem-go">Refresh</button>
+        <button class="btn btn-small" id="btn-mem-pc">→ PC</button>
+        <button class="btn btn-small" id="btn-mem-64">0x64</button>
+        <button class="btn btn-small" id="btn-mem-1000">0x1000</button>
+      </div>
+      <div class="mem-col-headers">
+        <span class="ma-hdr">Address</span>
+        <span class="mb-hdr">Memory contents and ASCII</span>
       </div>
       <div id="mem-content"></div>
     </div>
   </div>
 
-  <div id="console-resizer" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho de Output / Terminal" tabindex="0"></div>
+  <div id="console-resizer" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho de Messages" tabindex="0"></div>
 
-  <!-- CONSOLA -->
+  <!-- CONSOLA / MESSAGES -->
   <div id="panel-console">
     <div class="panel-hdr console-hdr">
-      <span>Output / Terminal</span>
-      <button class="btn btn-clear-console" id="btn-clear-console" type="button" aria-label="Limpiar Output / Terminal" title="Limpiar Output / Terminal">Limpiar</button>
+      <span><span class="hdr-icon">✉</span> Messages</span>
+      <button class="btn btn-clear-console" id="btn-clear-console" type="button" aria-label="Limpiar Messages" title="Limpiar Messages">Clear</button>
     </div>
     <div id="console-out"></div>
     <div id="console-in-bar">
@@ -83,7 +122,7 @@
   <span>sp: <b id="bb-sp">0x00000000</b></span>
   <span>a0 (x10): <b id="bb-a0">0x00000000</b></span>
   <span>ra (x1): <b id="bb-ra">0x00000000</b></span>
-  <span class="bb-right">F7 Step · F8 Run · F9 Reset · Esc Stop</span>
+  <span class="bb-right">F7 Step · F8 Continue · F9 Restart</span>
 </div>
 
 <script src="js/cpu.js"></script>
